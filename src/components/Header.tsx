@@ -24,6 +24,14 @@ export function Header() {
               >
                 + Log
               </a>
+              <a
+                href="/profile"
+                className="w-9 h-9 rounded-full bg-bf-card border border-bf-border flex items-center justify-center
+                           hover:border-bf-accent hover:bg-bf-card-hover transition-colors"
+                title="Profile"
+              >
+                <span className="text-lg">👤</span>
+              </a>
               <button
                 onClick={() => signOut()}
                 className="text-bf-text hover:text-bf-text-light text-sm transition-colors"
@@ -37,4 +45,3 @@ export function Header() {
     </header>
   );
 }
-

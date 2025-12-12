@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Review } from '@/types';
 import { getReviews, deleteReview } from '@/lib/reviews';
+import { getProfile, createProfile, Profile } from '@/lib/profiles';
 import { useAuth } from '@/lib/auth-context';
 import { ReviewCard } from '@/components/ReviewCard';
 import { Header } from '@/components/Header';
@@ -10,25 +11,37 @@ import { AuthForm } from '@/components/AuthForm';
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
 
   useEffect(() => {
     if (user) {
+      loadProfile();
       loadReviews();
     }
   }, [user]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+    
+    let profileData = await getProfile(user.id);
+    
+    // If no profile exists, create one with default username from email
+    if (!profileData) {
+      const defaultUsername = user.email?.split('@')[0] || 'User';
+      await createProfile(user.id, defaultUsername);
+      profileData = await getProfile(user.id);
+    }
+    
+    setProfile(profileData);
+  };
 
   const loadReviews = async () => {
     if (!user) return;
     setIsLoadingReviews(true);
     const data = await getReviews(user.id);
-    // Add user email as reviewer name
-    const reviewsWithUser = data.map(r => ({
-      ...r,
-      reviewedBy: user.email?.split('@')[0] || 'You',
-    }));
-    setReviews(reviewsWithUser);
+    setReviews(data);
     setIsLoadingReviews(false);
   };
 
@@ -40,6 +53,9 @@ export default function Home() {
       setReviews(reviews.filter(r => r.id !== id));
     }
   };
+
+  // Get display name from profile or fall back to email
+  const displayName = profile?.username || user?.email?.split('@')[0] || 'You';
 
   // Loading state
   if (loading) {
@@ -64,7 +80,7 @@ export default function Home() {
           {/* Welcome Section */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-bf-text-light mb-1">
-              Hey, {user.email?.split('@')[0]} 👋
+              Hey, {displayName} 👋
             </h2>
             <p className="text-bf-text">
               {isLoadingReviews 
@@ -86,7 +102,10 @@ export default function Home() {
               {reviews.map((review) => (
                 <ReviewCard 
                   key={review.id} 
-                  review={review} 
+                  review={{
+                    ...review,
+                    reviewedBy: displayName,
+                  }} 
                   onDelete={handleDelete}
                 />
               ))}
