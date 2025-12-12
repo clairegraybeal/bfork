@@ -157,7 +157,7 @@ export default function PublicProfilePage() {
                         </div>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-bf-text truncate">{album.name}</p>
+                    <p className="mt-1 text-xs text-bf-text truncate">{album.artist}</p>
                   </div>
                 ))}
               </div>

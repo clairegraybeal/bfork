@@ -107,7 +107,7 @@ export function Top4Picker({ top4, onUpdate }: Top4PickerProps) {
                 >
                   ✕
                 </button>
-                <p className="mt-1 text-xs text-bf-text truncate">{album.name}</p>
+                <p className="mt-1 text-xs text-bf-text truncate">{album.artist}</p>
               </div>
             );
           }
