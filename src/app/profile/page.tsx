@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [stats, setStats] = useState({ count: 0, avgRating: 0 });
   const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -79,6 +80,16 @@ export default function ProfilePage() {
     setIsSaving(false);
   };
 
+  const handleCopyLink = async () => {
+    if (!profile) return;
+    const url = `${window.location.origin}/u/${profile.username}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const publicUrl = profile ? `/u/${profile.username}` : '';
+
   if (loading || isLoadingProfile) {
     return (
       <>
@@ -117,13 +128,39 @@ export default function ProfilePage() {
               {user.email}
             </p>
 
-            {/* Edit Button */}
-            <button
-              onClick={() => setIsEditingUsername(true)}
-              className="text-sm text-bf-accent hover:text-bf-accent-hover transition-colors"
-            >
-              Edit Profile
-            </button>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setIsEditingUsername(true)}
+                className="text-sm text-bf-accent hover:text-bf-accent-hover transition-colors"
+              >
+                Edit Profile
+              </button>
+              <span className="text-bf-border">•</span>
+              <a
+                href={publicUrl}
+                className="text-sm text-bf-text hover:text-bf-text-light transition-colors"
+              >
+                View Public Profile
+              </a>
+            </div>
+          </div>
+
+          {/* Share Profile */}
+          <div className="mb-8 p-4 bg-bf-card rounded-lg border border-bf-border">
+            <p className="text-sm text-bf-text mb-2">Share your profile</p>
+            <div className="flex gap-2">
+              <div className="flex-1 px-3 py-2 bg-bf-bg rounded border border-bf-border text-bf-text-light text-sm truncate">
+                {typeof window !== 'undefined' ? `${window.location.origin}/u/${profile.username}` : `/u/${profile.username}`}
+              </div>
+              <button
+                onClick={handleCopyLink}
+                className="px-4 py-2 bg-bf-accent hover:bg-bf-accent-hover text-bf-bg font-semibold 
+                           rounded transition-colors text-sm whitespace-nowrap"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
           </div>
 
           {/* Top 4 Section */}
@@ -170,4 +207,3 @@ export default function ProfilePage() {
     </>
   );
 }
-

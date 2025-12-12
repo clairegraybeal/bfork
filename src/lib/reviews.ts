@@ -33,6 +33,22 @@ export async function getReviews(userId: string): Promise<Review[]> {
   return (data || []).map(dbToReview);
 }
 
+// Public version - for viewing other users' reviews
+export async function getPublicReviews(userId: string): Promise<Review[]> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching public reviews:', error);
+    return [];
+  }
+
+  return (data || []).map(dbToReview);
+}
+
 export async function saveReview(
   userId: string,
   album: Album,
@@ -71,4 +87,3 @@ export async function deleteReview(id: string, userId: string): Promise<boolean>
 
   return true;
 }
-

@@ -32,6 +32,29 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   };
 }
 
+export async function getProfileByUsername(username: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('username', username)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null; // Not found
+    }
+    console.error('Error fetching profile by username:', error);
+    return null;
+  }
+
+  return {
+    user_id: data.user_id,
+    username: data.username,
+    top_4: data.top_4 || [],
+    created_at: data.created_at,
+  };
+}
+
 export async function createProfile(
   userId: string,
   username: string
@@ -83,4 +106,3 @@ export async function updateTop4(
 
   return { success: true };
 }
-
