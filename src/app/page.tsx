@@ -2,111 +2,117 @@
 
 import { useState, useEffect } from 'react';
 import { Review } from '@/types';
-import { getReviews, deleteReview, getUsername, setUsername } from '@/lib/storage';
+import { getReviews, deleteReview } from '@/lib/reviews';
+import { useAuth } from '@/lib/auth-context';
 import { ReviewCard } from '@/components/ReviewCard';
+import { Header } from '@/components/Header';
+import { AuthForm } from '@/components/AuthForm';
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [username, setUsernameState] = useState('');
-  const [isSettingName, setIsSettingName] = useState(false);
-  const [nameInput, setNameInput] = useState('');
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
 
   useEffect(() => {
-    setReviews(getReviews());
-    const storedName = getUsername();
-    setUsernameState(storedName);
-    if (!storedName) {
-      setIsSettingName(true);
+    if (user) {
+      loadReviews();
     }
-  }, []);
+  }, [user]);
 
-  const handleSetUsername = () => {
-    if (nameInput.trim()) {
-      setUsername(nameInput.trim());
-      setUsernameState(nameInput.trim());
-      setIsSettingName(false);
+  const loadReviews = async () => {
+    if (!user) return;
+    setIsLoadingReviews(true);
+    const data = await getReviews(user.id);
+    // Add user email as reviewer name
+    const reviewsWithUser = data.map(r => ({
+      ...r,
+      reviewedBy: user.email?.split('@')[0] || 'You',
+    }));
+    setReviews(reviewsWithUser);
+    setIsLoadingReviews(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!user || !confirm('Delete this review?')) return;
+    
+    const success = await deleteReview(id, user.id);
+    if (success) {
+      setReviews(reviews.filter(r => r.id !== id));
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this review?')) {
-      deleteReview(id);
-      setReviews(getReviews());
-    }
-  };
-
-  // Username setup modal
-  if (isSettingName) {
+  // Loading state
+  if (loading) {
     return (
-      <div className="fixed inset-0 bg-bf-bg/95 flex items-center justify-center p-4 z-50">
-        <div className="bg-bf-card rounded-xl p-6 max-w-sm w-full border border-bf-border shadow-2xl">
-          <h2 className="text-xl font-bold text-bf-text-light mb-2">Welcome to Bitchfork!</h2>
-          <p className="text-bf-text mb-4">What should we call you?</p>
-          <input
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSetUsername()}
-            placeholder="Your name"
-            autoFocus
-            className="w-full px-4 py-3 bg-bf-bg border border-bf-border rounded-lg 
-                       text-bf-text-light placeholder-bf-text/50
-                       focus:outline-none focus:border-bf-accent focus:ring-1 focus:ring-bf-accent
-                       mb-4"
-          />
-          <button
-            onClick={handleSetUsername}
-            disabled={!nameInput.trim()}
-            className="w-full bg-bf-accent hover:bg-bf-accent-hover disabled:opacity-50 disabled:cursor-not-allowed
-                       text-bf-bg font-semibold py-3 rounded-lg transition-colors"
-          >
-            Get Started
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-bf-accent/30 border-t-bf-accent rounded-full animate-spin" />
       </div>
     );
   }
 
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      {/* Welcome Section */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-bf-text-light mb-1">
-          Hey, {username} 👋
-        </h2>
-        <p className="text-bf-text">
-          {reviews.length === 0 
-            ? "You haven't logged any albums yet. Start your collection!"
-            : `You've logged ${reviews.length} album${reviews.length === 1 ? '' : 's'}.`
-          }
-        </p>
-      </div>
+  // Not signed in
+  if (!user) {
+    return <AuthForm />;
+  }
 
-      {/* Reviews List */}
-      {reviews.length > 0 ? (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <ReviewCard 
-              key={review.id} 
-              review={review} 
-              onDelete={handleDelete}
-            />
-          ))}
+  // Signed in
+  return (
+    <>
+      <Header />
+      <main className="flex-1">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-bf-text-light mb-1">
+              Hey, {user.email?.split('@')[0]} 👋
+            </h2>
+            <p className="text-bf-text">
+              {isLoadingReviews 
+                ? 'Loading your reviews...'
+                : reviews.length === 0 
+                  ? "You haven't logged any albums yet. Start your collection!"
+                  : `You've logged ${reviews.length} album${reviews.length === 1 ? '' : 's'}.`
+              }
+            </p>
+          </div>
+
+          {/* Reviews List */}
+          {isLoadingReviews ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-3 border-bf-accent/30 border-t-bf-accent rounded-full animate-spin" />
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <ReviewCard 
+                  key={review.id} 
+                  review={review} 
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">📀</div>
+              <h3 className="text-lg font-semibold text-bf-text-light mb-2">No albums logged yet</h3>
+              <p className="text-bf-text mb-6">Start by logging your first album review!</p>
+              <a 
+                href="/log"
+                className="inline-block bg-bf-accent hover:bg-bf-accent-hover text-bf-bg font-semibold px-6 py-3 rounded-lg transition-colors"
+              >
+                + Log Your First Album
+              </a>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">📀</div>
-          <h3 className="text-lg font-semibold text-bf-text-light mb-2">No albums logged yet</h3>
-          <p className="text-bf-text mb-6">Start by logging your first album review!</p>
-          <a 
-            href="/log"
-            className="inline-block bg-bf-accent hover:bg-bf-accent-hover text-bf-bg font-semibold px-6 py-3 rounded-lg transition-colors"
-          >
-            + Log Your First Album
-          </a>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-bf-border py-6 mt-auto">
+        <div className="max-w-2xl mx-auto px-4 text-center text-bf-text/60 text-sm">
+          <p>Made with 🎵 for album lovers</p>
         </div>
-      )}
-    </div>
+      </footer>
+    </>
   );
 }
-
